@@ -1,15 +1,15 @@
-//! Safe Rust bindings for the sleekfft C++ library.
+//! Safe Rust bindings for the sleekfft C library.
 //!
 //! `k` is the base-2 logarithm of the transform length, so every slice passed
 //! to a transform must hold at least `2^k` elements.
 
 mod ffi;
 
-use std::{error::Error as StdError, fmt, ptr::NonNull};
+use std::{error::Error as StdError, fmt, os::raw::c_int, ptr::NonNull};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
-    /// The C++ object could not be constructed.
+    /// The library could not create its context.
     Allocation,
     /// `2^k` does not fit in `usize`.
     SizeOverflow { k: u32 },
@@ -19,34 +19,40 @@ pub enum Error {
         needed: usize,
         got: usize,
     },
-    /// The C++ side threw an exception (caught at the FFI boundary).
+    /// The library rejected its arguments (it requires `k >= 1`).
+    BadInput,
+    /// Any other non-zero status returned by the library.
     Backend(i32),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Allocation => write!(f, "failed to construct the FFT object"),
+            Error::Allocation => write!(f, "failed to create the FFT context"),
             Error::SizeOverflow { k } => write!(f, "2^{k} does not fit in usize"),
             Error::SliceTooShort { name, needed, got } => {
                 write!(f, "`{name}` has {got} elements, but {needed} are required")
             }
-            Error::Backend(code) => write!(f, "FFT backend failed with status {code}"),
+            Error::BadInput => write!(
+                f,
+                "the FFT library rejected its arguments (k must be at least 1)"
+            ),
+            Error::Backend(code) => write!(f, "FFT library failed with status {code}"),
         }
     }
 }
 
 impl StdError for Error {}
 
-/// Owning handle to a C++ `FFT` object.
+/// Owning handle to a `sleekfft_context`.
 ///
-/// `Send` but not `Sync`: the C++ methods are non-const and may lazily build
-/// twiddle tables, so concurrent use of one instance is not safe.
+/// `Send` but not `Sync`: transforms lazily (re)build the twiddle table stored in the
+/// context, so one context must not be used from several threads at once.
 pub struct Fft {
-    raw: NonNull<ffi::Raw>,
+    raw: NonNull<ffi::Context>,
 }
 
-// SAFETY: the C++ object owns its buffers and has no thread affinity.
+// SAFETY: the context owns its buffers and has no thread affinity.
 unsafe impl Send for Fft {}
 
 /// Number of elements a slice must hold for a transform of size `2^k`.
@@ -66,18 +72,18 @@ fn check_len(name: &'static str, slice: &[f64], needed: usize) -> Result<(), Err
     }
 }
 
-fn status(code: std::os::raw::c_int) -> Result<(), Error> {
-    if code == ffi::SLEEKFFT_OK {
-        Ok(())
-    } else {
-        Err(Error::Backend(code))
+fn status(code: c_int) -> Result<(), Error> {
+    match code {
+        ffi::SLEEKFFT_OK => Ok(()),
+        ffi::SLEEKFFT_ERR_BAD_INPUT => Err(Error::BadInput),
+        other => Err(Error::Backend(other)),
     }
 }
 
 impl Fft {
     pub fn new() -> Result<Self, Error> {
         // SAFETY: no preconditions; returns NULL on failure.
-        let ptr = unsafe { ffi::sleekfft_new() };
+        let ptr = unsafe { ffi::sleekfft_create_context() };
         NonNull::new(ptr)
             .map(|raw| Self { raw })
             .ok_or(Error::Allocation)
@@ -90,11 +96,11 @@ impl Fft {
         check_len("imag", imag, n)?;
         // SAFETY: handle is valid; both slices are distinct (`&mut`) and hold >= 2^k elements.
         status(unsafe {
-            ffi::sleekfft_fft(
+            ffi::sleekfft_forward_transform(
                 self.raw.as_ptr(),
                 real.as_mut_ptr(),
                 imag.as_mut_ptr(),
-                k.into(),
+                k as usize,
             )
         })
     }
@@ -106,17 +112,17 @@ impl Fft {
         check_len("imag", imag, n)?;
         // SAFETY: as in `fft`.
         status(unsafe {
-            ffi::sleekfft_ifft(
+            ffi::sleekfft_inverse_transform(
                 self.raw.as_ptr(),
                 real.as_mut_ptr(),
                 imag.as_mut_ptr(),
-                k.into(),
+                k as usize,
             )
         })
     }
 
     /// Cyclic convolution of two real signals; the result is written into the inputs
-    /// (see the C++ documentation for exactly where).
+    /// (the C documentation says "in half of the input arrays").
     pub fn cyclic_conv(
         &mut self,
         real1: &mut [f64],
@@ -132,7 +138,7 @@ impl Fft {
                 self.raw.as_ptr(),
                 real1.as_mut_ptr(),
                 real2.as_mut_ptr(),
-                k.into(),
+                k as usize,
             )
         })
     }
@@ -140,8 +146,8 @@ impl Fft {
 
 impl Drop for Fft {
     fn drop(&mut self) {
-        // SAFETY: `raw` came from `sleekfft_new` and is freed exactly once.
-        unsafe { ffi::sleekfft_free(self.raw.as_ptr()) }
+        // SAFETY: `raw` came from `sleekfft_create_context` and is destroyed exactly once.
+        unsafe { ffi::sleekfft_destroy_context(self.raw.as_ptr()) };
     }
 }
 
@@ -330,6 +336,18 @@ mod tests {
         assert_eq!(
             f.fft(&mut [], &mut [], 64),
             Err(Error::SizeOverflow { k: 64 })
+        );
+    }
+
+    /// The C library requires k >= 1 and reports it as a bad-input status.
+    #[test]
+    fn rejects_zero_k() {
+        let mut f = Fft::new().unwrap();
+        assert_eq!(f.fft(&mut [0.0], &mut [0.0], 0), Err(Error::BadInput));
+        assert_eq!(f.ifft(&mut [0.0], &mut [0.0], 0), Err(Error::BadInput));
+        assert_eq!(
+            f.cyclic_conv(&mut [0.0], &mut [0.0], 0),
+            Err(Error::BadInput)
         );
     }
 

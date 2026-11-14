@@ -67,7 +67,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends clang clang-format clang-tidy ninja-build libfftw3-dev pkg-config
 
       - name: clang-format
-        run: git ls-files '*.h' '*.hpp' '*.cpp' '*.cc' | xargs -r clang-format --dry-run --Werror
+        run: git ls-files '*.h' '*.hpp' '*.c' '*.cpp' '*.cc' | xargs -r clang-format --dry-run --Werror
 
       # Configuring exports build/clang-debug/compile_commands.json for clang-tidy.
       - name: Configure
@@ -75,10 +75,10 @@ jobs:
 
       # The library is header-only, so its headers are analysed through the files that include them.
       - name: clang-tidy (tests and library headers)
-        run: git ls-files 'tests/*.cpp' | xargs -r clang-tidy -p build/clang-debug --quiet
+        run: git ls-files 'tests/*.c' 'tests/*.cpp' | xargs -r clang-tidy -p build/clang-debug --quiet
 
-      - name: clang-tidy (Rust FFI shim)
-        run: clang-tidy --quiet bindings/rust/csrc/sleekfft_c.cpp -- -std=c++17 -Iinclude -Ibindings/rust/csrc
+      - name: clang-tidy (C API as built by the Rust crate)
+        run: clang-tidy --quiet bindings/rust/c_src/sleekfft_impl.c -- -std=gnu11 -Iinclude
 
   rust:
     name: Rust tests
