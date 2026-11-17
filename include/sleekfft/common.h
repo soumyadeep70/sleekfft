@@ -8,8 +8,8 @@
 typedef double f64;
 
 typedef struct twiddle_table {
-    f64* wr;
-    f64* wi;
+    f64 *wr;
+    f64 *wi;
     size_t size;
 } twiddle_table;
 

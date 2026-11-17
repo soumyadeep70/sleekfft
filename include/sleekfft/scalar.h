@@ -9,15 +9,15 @@ extern "C" {
 #include <math.h>
 #include <stdlib.h>
 
-void scalar_reserve_twiddles(twiddle_table* table, const size_t k) {
+void scalar_reserve_twiddles(twiddle_table *table, const size_t k) {
     const size_t m = 1ULL << (k - 1);
     if (table->size >= m)
         return;
     table->size = m;
     free(table->wr);
     free(table->wi);
-    table->wr = (f64*)malloc(m * sizeof(f64));
-    table->wi = (f64*)malloc(m * sizeof(f64));
+    table->wr = (f64 *)malloc(m * sizeof(f64));
+    table->wi = (f64 *)malloc(m * sizeof(f64));
     const f64 arg = -PI / (f64)m;
     (table->wr)[0] = 1.0, (table->wi)[0] = 0.0;
     for (size_t i = 1, j = m >> 1; j; i <<= 1, j >>= 1) {
@@ -32,7 +32,7 @@ void scalar_reserve_twiddles(twiddle_table* table, const size_t k) {
     }
 }
 
-void scalar_forward_transform(const twiddle_table* table, f64* xr, f64* xi, const size_t k) {
+void scalar_forward_transform(const twiddle_table *table, f64 *xr, f64 *xi, const size_t k) {
     if (k == 1) {
         const f64 ur = xr[0], vr = xr[1];
         const f64 ui = xi[0], vi = xi[1];
@@ -86,7 +86,7 @@ void scalar_forward_transform(const twiddle_table* table, f64* xr, f64* xi, cons
     }
 }
 
-void scalar_inverse_transform(const twiddle_table* table, f64* xr, f64* xi, const size_t k) {
+void scalar_inverse_transform(const twiddle_table *table, f64 *xr, f64 *xi, const size_t k) {
     if (k == 1) {
         const f64 ur = xr[0], vr = xr[1];
         const f64 ui = xi[0], vi = xi[1];
@@ -140,7 +140,7 @@ void scalar_inverse_transform(const twiddle_table* table, f64* xr, f64* xi, cons
     }
 }
 
-void scalar_cyclic_conv(const twiddle_table* table, f64* xr, f64* xi, const size_t k) {
+void scalar_cyclic_conv(const twiddle_table *table, f64 *xr, f64 *xi, const size_t k) {
     const size_t m = 1ULL << k;
     scalar_forward_transform(table, xr, xi, k);
     xi[0] = 4 * xr[0] * xi[0];

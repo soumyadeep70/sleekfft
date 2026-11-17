@@ -14,7 +14,7 @@ extern "C" {
 
 typedef f64 __attribute__((vector_size(32))) f64x4;
 
-__attribute__((target("avx,fma"))) void x64_avx_fma_reserve_twiddles(twiddle_table* table,
+__attribute__((target("avx,fma"))) void x64_avx_fma_reserve_twiddles(twiddle_table *table,
                                                                      const size_t k) {
     const size_t m = 1ULL << (k - 1);
     if (table->size >= m)
@@ -22,8 +22,8 @@ __attribute__((target("avx,fma"))) void x64_avx_fma_reserve_twiddles(twiddle_tab
     table->size = m;
     free(table->wr);
     free(table->wi);
-    table->wr = (f64*)aligned_alloc(32, m <= 4 ? 32UL : m * sizeof(f64));
-    table->wi = (f64*)aligned_alloc(32, m <= 4 ? 32UL : m * sizeof(f64));
+    table->wr = (f64 *)aligned_alloc(32, m <= 4 ? 32UL : m * sizeof(f64));
+    table->wi = (f64 *)aligned_alloc(32, m <= 4 ? 32UL : m * sizeof(f64));
     const f64 arg = -PI / (f64)m;
     table->wr[0] = 1.0, table->wi[0] = 0.0;
     for (size_t i = 1, j = m >> 1; j; i <<= 1, j >>= 1) {
@@ -39,7 +39,7 @@ __attribute__((target("avx,fma"))) void x64_avx_fma_reserve_twiddles(twiddle_tab
 }
 
 __attribute__((target("avx,fma"))) void
-x64_avx_fma_forward_transform(const twiddle_table* table, f64* xr, f64* xi, const size_t k) {
+x64_avx_fma_forward_transform(const twiddle_table *table, f64 *xr, f64 *xi, const size_t k) {
     if (k == 1) {
         const f64 ur = xr[0], vr = xr[1];
         const f64 ui = xi[0], vi = xi[1];
@@ -143,7 +143,7 @@ x64_avx_fma_forward_transform(const twiddle_table* table, f64* xr, f64* xi, cons
 }
 
 __attribute__((target("avx,fma"))) void
-x64_avx_fma_inverse_transform(const twiddle_table* table, f64* xr, f64* xi, const size_t k) {
+x64_avx_fma_inverse_transform(const twiddle_table *table, f64 *xr, f64 *xi, const size_t k) {
     if (k == 1) {
         const f64 ur = xr[0], vr = xr[1];
         const f64 ui = xi[0], vi = xi[1];
@@ -243,8 +243,8 @@ x64_avx_fma_inverse_transform(const twiddle_table* table, f64* xr, f64* xi, cons
     }
 }
 
-__attribute__((target("avx,fma"))) void x64_avx_fma_cyclic_conv(const twiddle_table* table, f64* xr,
-                                                                f64* xi, const size_t k) {
+__attribute__((target("avx,fma"))) void x64_avx_fma_cyclic_conv(const twiddle_table *table, f64 *xr,
+                                                                f64 *xi, const size_t k) {
     const size_t m = 1ULL << k;
     x64_avx_fma_forward_transform(table, xr, xi, k);
     xi[0] = 4 * xr[0] * xi[0];

@@ -19,16 +19,16 @@ typedef enum {
 } sleekfft_status;
 
 typedef struct sleekfft_context {
-    void (*_reserve_twiddles_)(twiddle_table*, size_t);
-    void (*_forward_transform_)(const twiddle_table*, f64*, f64*, size_t);
-    void (*_inverse_transform_)(const twiddle_table*, f64*, f64*, size_t);
-    void (*_cyclic_conv_)(const twiddle_table*, f64*, f64*, size_t);
+    void (*_reserve_twiddles_)(twiddle_table *, size_t);
+    void (*_forward_transform_)(const twiddle_table *, f64 *, f64 *, size_t);
+    void (*_inverse_transform_)(const twiddle_table *, f64 *, f64 *, size_t);
+    void (*_cyclic_conv_)(const twiddle_table *, f64 *, f64 *, size_t);
 
-    twiddle_table* table;
+    twiddle_table *table;
 } sleekfft_context;
 
-sleekfft_context* sleekfft_create_context() {
-    sleekfft_context* context = (sleekfft_context*)malloc(sizeof(sleekfft_context));
+sleekfft_context *sleekfft_create_context() {
+    sleekfft_context *context = (sleekfft_context *)malloc(sizeof(sleekfft_context));
     context->table = NULL;
     __builtin_cpu_init();
     const int AVX_SUPPORTED = __builtin_cpu_supports("avx");
@@ -58,23 +58,23 @@ sleekfft_context* sleekfft_create_context() {
     return context;
 }
 
-int sleekfft_destroy_context(const sleekfft_context* context) {
+int sleekfft_destroy_context(const sleekfft_context *context) {
     if (context) {
         if (context->table) {
             free(context->table->wr);
             free(context->table->wi);
             free(context->table);
         }
-        free((void*)context);
+        free((void *)context);
     }
     return SLEEKFFT_OK;
 }
 
-int sleekfft_reserve_twiddles(sleekfft_context* context, const size_t k) {
+int sleekfft_reserve_twiddles(sleekfft_context *context, const size_t k) {
     if (!context)
         return SLEEKFFT_INVALID_CONTEXT;
     if (context->table == NULL) {
-        context->table = (twiddle_table*)malloc(sizeof(twiddle_table));
+        context->table = (twiddle_table *)malloc(sizeof(twiddle_table));
         context->table->wr = NULL;
         context->table->wi = NULL;
         context->table->size = 0;
@@ -85,7 +85,7 @@ int sleekfft_reserve_twiddles(sleekfft_context* context, const size_t k) {
 
 // computes forward transform of input data
 // input in normal order, output in bit reversed order
-int sleekfft_forward_transform(sleekfft_context* context, f64* xr, f64* xi, const size_t k) {
+int sleekfft_forward_transform(sleekfft_context *context, f64 *xr, f64 *xi, const size_t k) {
     if (!context)
         return SLEEKFFT_INVALID_CONTEXT;
     if (!xr || !xi || k == 0)
@@ -97,7 +97,7 @@ int sleekfft_forward_transform(sleekfft_context* context, f64* xr, f64* xi, cons
 
 // computes backward transform of input data
 // input in bit reversed order, output in normal order
-int sleekfft_inverse_transform(sleekfft_context* context, f64* xr, f64* xi, const size_t k) {
+int sleekfft_inverse_transform(sleekfft_context *context, f64 *xr, f64 *xi, const size_t k) {
     if (!context)
         return SLEEKFFT_INVALID_CONTEXT;
     if (!xr || !xi || k == 0)
@@ -109,7 +109,7 @@ int sleekfft_inverse_transform(sleekfft_context* context, f64* xr, f64* xi, cons
 
 // perform cyclic convolution of the two real signals
 // and writes output in half of the input arrays
-int sleekfft_cyclic_conv(sleekfft_context* context, f64* xr, f64* xi, const size_t k) {
+int sleekfft_cyclic_conv(sleekfft_context *context, f64 *xr, f64 *xi, const size_t k) {
     if (!context)
         return SLEEKFFT_INVALID_CONTEXT;
     if (!xr || !xi || k == 0)
@@ -126,7 +126,7 @@ int sleekfft_cyclic_conv(sleekfft_context* context, f64* xr, f64* xi, const size
 #ifdef __cplusplus
 
 class Sleekfft {
-    sleekfft_context* context;
+    sleekfft_context *context;
 
   public:
     Sleekfft() { context = sleekfft_create_context(); }
@@ -135,19 +135,19 @@ class Sleekfft {
 
     // computes forward transform of input data
     // input in normal order, output in bit reversed order
-    void forward_transform(f64* real, f64* imag, const size_t k) {
+    void forward_transform(f64 *real, f64 *imag, const size_t k) {
         sleekfft_forward_transform(context, real, imag, k);
     }
 
     // computes backward transform of input data
     // input in bit reversed order, output in normal order
-    void inverse_transform(f64* real, f64* imag, const size_t k) {
+    void inverse_transform(f64 *real, f64 *imag, const size_t k) {
         sleekfft_inverse_transform(context, real, imag, k);
     }
 
     // perform cyclic convolution of the two real signals
     // and writes output in half of the input arrays
-    void cyclic_conv(f64* real1, f64* real2, const size_t k) {
+    void cyclic_conv(f64 *real1, f64 *real2, const size_t k) {
         sleekfft_cyclic_conv(context, real1, real2, k);
     }
 };

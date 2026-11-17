@@ -41,7 +41,7 @@ void test(const int N) {
 
     const int64_t t2 = now_ns();
 
-    sleekfft_context* c = sleekfft_create_context();
+    sleekfft_context *c = sleekfft_create_context();
     sleekfft_forward_transform(c, ar, ai, k);
     sleekfft_destroy_context(c);
     for (int i = 1, j = 0; i < N; i++) {

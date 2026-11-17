@@ -14,7 +14,7 @@ extern "C" {
 
 typedef f64 __attribute__((vector_size(16))) f64x2;
 
-__attribute__((target("sse2"))) void x64_sse2_reserve_twiddles(twiddle_table* table,
+__attribute__((target("sse2"))) void x64_sse2_reserve_twiddles(twiddle_table *table,
                                                                const size_t k) {
     const size_t m = 1ULL << (k - 1);
     if (table->size >= m)
@@ -22,8 +22,8 @@ __attribute__((target("sse2"))) void x64_sse2_reserve_twiddles(twiddle_table* ta
     table->size = m;
     free(table->wr);
     free(table->wi);
-    table->wr = (f64*)aligned_alloc(16, m <= 2 ? 16UL : m * sizeof(f64));
-    table->wi = (f64*)aligned_alloc(16, m <= 2 ? 16UL : m * sizeof(f64));
+    table->wr = (f64 *)aligned_alloc(16, m <= 2 ? 16UL : m * sizeof(f64));
+    table->wi = (f64 *)aligned_alloc(16, m <= 2 ? 16UL : m * sizeof(f64));
     const f64 arg = -PI / (f64)m;
     (table->wr)[0] = 1.0, (table->wi)[0] = 0.0;
     for (size_t i = 1, j = m >> 1; j; i <<= 1, j >>= 1) {
@@ -38,8 +38,8 @@ __attribute__((target("sse2"))) void x64_sse2_reserve_twiddles(twiddle_table* ta
     }
 }
 
-__attribute__((target("sse2"))) void x64_sse2_forward_transform(const twiddle_table* table, f64* xr,
-                                                                f64* xi, const size_t k) {
+__attribute__((target("sse2"))) void x64_sse2_forward_transform(const twiddle_table *table, f64 *xr,
+                                                                f64 *xi, const size_t k) {
     if (k == 1) {
         const f64 ur = xr[0], vr = xr[1];
         const f64 ui = xi[0], vi = xi[1];
@@ -136,8 +136,8 @@ __attribute__((target("sse2"))) void x64_sse2_forward_transform(const twiddle_ta
     }
 }
 
-__attribute__((target("sse2"))) void x64_sse2_inverse_transform(const twiddle_table* table, f64* xr,
-                                                                f64* xi, const size_t k) {
+__attribute__((target("sse2"))) void x64_sse2_inverse_transform(const twiddle_table *table, f64 *xr,
+                                                                f64 *xi, const size_t k) {
     if (k == 1) {
         const f64 ur = xr[0], vr = xr[1];
         const f64 ui = xi[0], vi = xi[1];
@@ -234,8 +234,8 @@ __attribute__((target("sse2"))) void x64_sse2_inverse_transform(const twiddle_ta
     }
 }
 
-__attribute__((target("sse2"))) void x64_sse2_cyclic_conv(const twiddle_table* table, f64* xr,
-                                                          f64* xi, const size_t k) {
+__attribute__((target("sse2"))) void x64_sse2_cyclic_conv(const twiddle_table *table, f64 *xr,
+                                                          f64 *xi, const size_t k) {
     const size_t m = 1ULL << k;
     x64_sse2_forward_transform(table, xr, xi, k);
     xi[0] = 4 * xr[0] * xi[0];
