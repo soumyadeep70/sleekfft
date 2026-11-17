@@ -109,13 +109,13 @@ int sleekfft_inverse_transform(sleekfft_context *context, f64 *xr, f64 *xi, cons
 
 // perform cyclic convolution of the two real signals
 // and writes output in half of the input arrays
-int sleekfft_cyclic_conv(sleekfft_context *context, f64 *xr, f64 *xi, const size_t k) {
+int sleekfft_cyclic_conv(sleekfft_context *context, f64 *x1, f64 *x2, const size_t k) {
     if (!context)
         return SLEEKFFT_INVALID_CONTEXT;
-    if (!xr || !xi || k == 0)
+    if (!x1 || !x2 || k == 0)
         return SLEEKFFT_ERR_BAD_INPUT;
     sleekfft_reserve_twiddles(context, k);
-    context->_cyclic_conv_(context->table, xr, xi, k);
+    context->_cyclic_conv_(context->table, x1, x2, k);
     return SLEEKFFT_OK;
 }
 

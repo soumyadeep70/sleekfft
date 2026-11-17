@@ -237,34 +237,34 @@ __attribute__((target("avx"))) void x64_avx_inverse_transform(const twiddle_tabl
     }
 }
 
-__attribute__((target("avx"))) void x64_avx_cyclic_conv(const twiddle_table *table, f64 *xr,
-                                                        f64 *xi, const size_t k) {
+__attribute__((target("avx"))) void x64_avx_cyclic_conv(const twiddle_table *table, f64 *x1,
+                                                        f64 *x2, const size_t k) {
     const size_t m = 1ULL << k;
-    x64_avx_forward_transform(table, xr, xi, k);
-    xi[0] = 4 * xr[0] * xi[0];
-    xi[1] = 4 * xr[1] * xi[1];
-    xr[0] = 0, xr[1] = 0;
+    x64_avx_forward_transform(table, x1, x2, k);
+    x2[0] = 4 * x1[0] * x2[0];
+    x2[1] = 4 * x1[1] * x2[1];
+    x1[0] = 0, x1[1] = 0;
     for (size_t i = 2; i < m; i <<= 1) {
         for (size_t p = i, pe = i << 1; p < pe; p += 2) {
             const size_t q = p ^ (i - 1);
-            const f64 ur = xr[p] - xr[q], ui = xi[p] + xi[q];
-            const f64 vr = xr[p] + xr[q], vi = xi[p] - xi[q];
-            xr[p] = ur * vr - ui * vi;
-            xi[p] = ur * vi + ui * vr;
-            xr[q] = -xr[p];
-            xi[q] = xi[p];
+            const f64 ur = x1[p] - x1[q], ui = x2[p] + x2[q];
+            const f64 vr = x1[p] + x1[q], vi = x2[p] - x2[q];
+            x1[p] = ur * vr - ui * vi;
+            x2[p] = ur * vi + ui * vr;
+            x1[q] = -x1[p];
+            x2[q] = x2[p];
         }
     }
     const f64 fc = 0.25 / (f64)m;
     for (size_t i = 0, j = 0; i < m; i += 2, ++j) {
-        const f64 ar = xr[i] + xr[i | 1], ai = xi[i] + xi[i | 1];
-        const f64 br = xr[i] - xr[i | 1], bi = xi[i] - xi[i | 1];
+        const f64 ar = x1[i] + x1[i | 1], ai = x2[i] + x2[i | 1];
+        const f64 br = x1[i] - x1[i | 1], bi = x2[i] - x2[i | 1];
         const f64 cr = br * table->wr[j] + bi * table->wi[j];
         const f64 ci = bi * table->wr[j] - br * table->wi[j];
-        xr[j] = (cr + ai) * fc;
-        xi[j] = (ci - ar) * fc;
+        x1[j] = (cr + ai) * fc;
+        x2[j] = (ci - ar) * fc;
     }
-    x64_avx_inverse_transform(table, xr, xi, k - 1);
+    x64_avx_inverse_transform(table, x1, x2, k - 1);
 }
 
 #ifdef __cplusplus
