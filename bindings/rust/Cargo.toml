@@ -6,10 +6,6 @@ edition = "2024"
 license = "MIT"
 build = "build.rs"
 
-[features]
-# Compile the C++ side with -march=native (non-portable binaries).
-native = []
-
 [build-dependencies]
 cc = "1"
 
